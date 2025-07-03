@@ -13,7 +13,7 @@ app.use(express.json());
 
 let db, users;
 
-MongoClient.connect(MONGO_URI, { useUnifiedTopology: true })
+MongoClient.connect(MONGO_URI)
   .then(client => {
     db = client.db(DB_NAME);
     users = db.collection('users');
@@ -43,4 +43,14 @@ app.post('/register', async (req, res) => {
   if (exists) return res.status(409).json({ success: false, message: 'El usuario ya existe' });
   await users.insertOne({ email, password });
   res.json({ success: true, message: 'Usuario registrado correctamente' });
+});
+
+// Endpoint solo para pruebas: listar todos los usuarios
+app.get('/users', async (req, res) => {
+  try {
+    const allUsers = await users.find().toArray();
+    res.json(allUsers);
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error al obtener usuarios' });
+  }
 });
