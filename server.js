@@ -23,26 +23,32 @@ MongoClient.connect(MONGO_URI)
   })
   .catch(err => console.error('Error conectando a MongoDB:', err));
 
-// Endpoint para login
+// Endpoint para login (reforzado)
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: 'Faltan datos' });
-  const user = await users.findOne({ email, password });
-  if (user) {
-    res.json({ success: true, message: 'Inicio de sesión exitoso' });
-  } else {
-    res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos' });
+  if (!email || !password) {
+    console.log('Faltan datos en la petición');
+    return res.status(400).json({ success: false, message: 'Faltan datos' });
   }
-});
-
-// Endpoint para registro
-app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: 'Faltan datos' });
-  const exists = await users.findOne({ email });
-  if (exists) return res.status(409).json({ success: false, message: 'El usuario ya existe' });
-  await users.insertOne({ email, password });
-  res.json({ success: true, message: 'Usuario registrado correctamente' });
+  try {
+    let user = await users.findOne({ email });
+    if (user) {
+      if (user.password === password) {
+        console.log(`Login exitoso para ${email}`);
+        res.json({ success: true, message: 'Inicio de sesión exitoso' });
+      } else {
+        console.log(`Contraseña incorrecta para ${email}`);
+        res.status(401).json({ success: false, message: 'Contraseña incorrecta' });
+      }
+    } else {
+      await users.insertOne({ email, password });
+      console.log(`Usuario creado: ${email}`);
+      res.json({ success: true, message: 'Usuario creado e inició sesión' });
+    }
+  } catch (err) {
+    console.error('Error en /login:', err);
+    res.status(500).json({ success: false, message: 'Error en el servidor' });
+  }
 });
 
 // Endpoint solo para pruebas: listar todos los usuarios
